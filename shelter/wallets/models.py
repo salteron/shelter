@@ -1,6 +1,7 @@
 from decimal import Decimal
 from typing import NamedTuple
 
+from django.contrib.auth.models import User
 from django.db import models
 
 
@@ -16,6 +17,20 @@ class Amount(NamedTuple):
 
 
 class Wallet(models.Model):
+    # TODO: uniq index (user_id, payment_system_id, payment_system_account_number)
+
+    user = models.ForeignKey(
+        User,
+        on_delete=models.PROTECT,
+        related_name="wallets",
+        verbose_name="Владелец",
+    )
+    payment_system_id = models.CharField(
+        max_length=100, verbose_name="Идентификатор платежной системы"
+    )
+    payment_system_account_number = models.CharField(
+        max_length=100, verbose_name="Номер счета в платежной системе"
+    )
     deposit = models.DecimalField(
         max_digits=19, decimal_places=4, verbose_name="Депозит"
     )

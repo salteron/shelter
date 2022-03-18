@@ -1,7 +1,9 @@
 import uuid
 
+from django.contrib.auth.models import User
 from django.db import models
 
+from shelter.wallets import models as wallets
 from shelter.wallets.models import Currencies
 
 
@@ -34,23 +36,39 @@ class Transaction(models.Model):
     cancelation_reason = models.TextField(
         blank=True, null=True, verbose_name="Причина отмены"
     )
-    wallet = models.ForeignKey(
-        "wallets.Wallet",
-        on_delete=models.PROTECT,
-        related_name="%(class)ss",
-        verbose_name="Кошелек",
-    )
     payment_system_id = models.CharField(
         max_length=100, verbose_name="Идентификатор платежной системы"
     )
-    payment_system_transaction_id = models.CharField(
-        max_length=100, verbose_name="Идентификатор транзакции в платежной системе"
-    )
+
+    @property
+    def amount(self) -> wallets.Amount:
+        return wallets.Amount(value=self.value, currency=self.currency)
 
 
 class Deposit(Transaction):
+    user = models.ForeignKey(
+        User,
+        on_delete=models.PROTECT,
+        related_name="deposits",
+        verbose_name="Владелец",
+    )
+
+    wallet = models.ForeignKey(
+        "wallets.Wallet",
+        on_delete=models.PROTECT,
+        related_name="deposits",
+        verbose_name="Кошелек",
+        null=True,
+        blank=True,
+    )
+
     confirmation_url = models.URLField(verbose_name="Ссылка для подтверждения")
 
 
 class Payout(Transaction):
-    pass
+    wallet = models.ForeignKey(
+        "wallets.Wallet",
+        on_delete=models.PROTECT,
+        related_name="payouts",
+        verbose_name="Кошелек",
+    )

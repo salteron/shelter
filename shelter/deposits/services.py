@@ -1,8 +1,11 @@
 import uuid
 from typing import NamedTuple
 
+from django.contrib.auth import models as users
+from django.db import transaction
+
 from shelter.deposits import models
-from shelter.wallets import models as wallets
+from shelter.wallets import models as wallets, services as wallets_services
 
 """
     TODO:
@@ -34,67 +37,92 @@ from shelter.wallets import models as wallets
 
 
 class PaymentSystemDeposit(NamedTuple):
-    id: str
     confirmation_url: str
 
 
 # TODO: передавать конкретную платежную систему
-def create_deposit(wallet: wallets.Wallet, amount: wallets.Amount) -> models.Deposit:
+def create_deposit(user: users.User, amount: wallets.Amount) -> models.Deposit:
     transaction_id = uuid.uuid4()
 
-    payment_system_deposit = payment_system_create_deposit(
-        wallet, amount, transaction_id
-    )
+    payment_system_deposit = payment_system_create_deposit(user, amount, transaction_id)
 
-    return models.Deposit.objects.create(
+    return user.deposits.create(
         value=amount.value,
         currency=amount.currency,
         transaction_id=transaction_id,
         state=models.TransactionStates.PENDING,
-        wallet=wallet,
-        payment_system_id="superpay",  # TODO: payment_system_slug брать из переменной класса
-        payment_system_transaction_id=payment_system_deposit.id,
+        payment_system_id="superpay",  # TODO: payment_system_id брать из переменной класса
         confirmation_url=payment_system_deposit.confirmation_url,
     )
 
 
 # TODO: может, merchant_id все-таки в мету? Какие еще данные нужны?
+# TODO: в payment_systems
 def payment_system_create_deposit(
-    wallet: wallets.Wallet,
+    user: users.User,
     amount: wallets.Amount,
     merchant_id: uuid.UUID,
 ) -> PaymentSystemDeposit:
-    id = 42
-
     return PaymentSystemDeposit(
-        id=id, confirmation_url=f"http://superpay.com/deposit/{id}/confirmation"
+        confirmation_url="http://superpay.com/deposit/42/confirmation"
     )
 
 
-# TODO: передавать конкретную платежную систему
 def create_payout(wallet: wallets.Wallet, amount: wallets.Amount) -> models.Payout:
-    transaction_id = uuid.uuid4()
+    """
 
-    payment_system_payout = payment_system_create_payout(wallet, amount, transaction_id)
+    Сначала мы должны поставить средства в холд у себя и только потом выполнить запрос.
+    Иначе возможна ситуация, когда запрос выполнится, средства спишутся, а у нас
+    операция свалится и пользователь продолжит распоряжаться деньгами, которые ему
+    уже не принадлежат.
 
-    return models.Deposit.objects.create(
-        value=amount.value,
-        currency=amount.currency,
-        transaction_id=transaction_id,
-        state=models.TransactionStates.PENDING,
-        wallet=wallet,
-        payment_system_id="superpay",  # TODO: payment_system_slug брать из переменной класса
-        payment_system_transaction_id=payment_system_payout.id,
-    )
+    Выполнить в одной транзакции тоже не стоит: запрос выполнится, а коммит транзакции нет.
+    Мы должны записать изменения в базу, коммит.
+    И уже после этого выполнить запрос.
+
+    Да, запрос может свалиться, но мы можем вообще поставить его в джоб и сделать там retry.
+
+    """
+
+    with transaction.atomic():
+        wallets_services.hold_amount(wallet, amount)
+
+        payout = wallet.payouts.create(
+            value=amount.value,
+            currency=amount.currency,
+            state=models.TransactionStates.PENDING,
+            payment_system_id=wallet.payment_system_id,
+        )
+
+    # TODO: delay с retry при HTTP ошибках; Не забыть проверить, что все еще Payout is pending.
+    # возможно в джобе можно отметить, что джоб будет пытаться выполниться ограниченно число раз
+    # а затем фоновая штука пройдется по старым Payout в статусе PENDING (!) и вернет деньги на базу,
+    # предварительно переведя их в статус canceled.
+    payment_system_create_payout(payout)
+
+    return payout
 
 
-def payment_system_create_payout(
-    wallet: wallets.Wallet,
-    amount: wallets.Amount,
-    merchant_id: uuid.UUID,
-) -> PaymentSystemDeposit:
-    id = 42
+# TODO: в payment_systems
+def payment_system_create_payout(payout: models.Payout):
+    pass
 
-    return PaymentSystemDeposit(
-        id=id, confirmation_url=f"http://superpay.com/deposit/{id}/confirmation"
-    )
+
+# TODO: по идее здесь должен быть event
+def handle_succeeded_deposit(
+    transaction_id: uuid.UUID, payment_system_account_number: str
+):
+    deposit = models.Deposit.objects.get(transaction_id=transaction_id)
+
+    if deposit.state != models.TransactionStates.PENDING:
+        return  # может быть некая обработка ситуации вместо игнорирования
+
+    with transaction.atomic():
+        wallet = wallets_services.get_or_create_wallet_for_deposit(
+            deposit, payment_system_account_number
+        )
+        wallets_services.deposit_amount(wallet, deposit.amount)
+
+        deposit.wallet = wallet
+        deposit.state = models.TransactionStates.SUCCEEDED
+        deposit.save()
