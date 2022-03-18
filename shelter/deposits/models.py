@@ -11,8 +11,10 @@ class TransactionStates(models.TextChoices):
     CANCELED = "canceled", "canceled"
 
 
-# TODO: пока что выделить в класс Transaction и унаследоваться от него?
-class Deposit(models.Model):
+class Transaction(models.Model):
+    class Meta:
+        abstract = True
+
     value = models.DecimalField(
         max_digits=19, decimal_places=4, verbose_name="Значение"
     )
@@ -35,7 +37,7 @@ class Deposit(models.Model):
     wallet = models.ForeignKey(
         "wallets.Wallet",
         on_delete=models.PROTECT,
-        related_name="deposits",
+        related_name="%(class)ss",
         verbose_name="Кошелек",
     )
     payment_system_id = models.CharField(
@@ -44,4 +46,11 @@ class Deposit(models.Model):
     payment_system_transaction_id = models.CharField(
         max_length=100, verbose_name="Идентификатор транзакции в платежной системе"
     )
+
+
+class Deposit(Transaction):
     confirmation_url = models.URLField(verbose_name="Ссылка для подтверждения")
+
+
+class Payout(Transaction):
+    pass
