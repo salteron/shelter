@@ -1,0 +1,7 @@
+[flake8]
+
+max-line-length = 88
+exclude=migrations
+show-source = true
+extend-ignore = E203,E231
+application_import_names = bootcamp

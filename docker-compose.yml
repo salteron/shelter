@@ -1,0 +1,48 @@
+version: '3.6'
+
+services:
+  db:
+    image: 'registry.kontur.host/library/postgres/postgres:13.3'
+    environment:
+      - POSTGRES_DB=development
+      - POSTGRES_HOST_AUTH_METHOD=trust
+    volumes:
+      - pg-data:/var/lib/postgresql/data
+
+  app:
+    &app
+    image: shelter-api-dev
+    build:
+      context: .
+      target: development_build
+      args:
+        DJANGO_ENV: development
+    command: bash
+    volumes:
+      - '.:/app'
+      - pip-data:/usr/local/lib/python3.9/site-packages
+      - bin-data:/usr/local/bin
+    env_file:
+      - ${APP_ENV_FILE:-.env.development}
+    depends_on:
+      - db
+
+  web:
+    <<: *app
+    command:
+      - gunicorn
+      - --bind=0.0.0.0:8000
+      - --certfile=certs/development/server.crt
+      - --keyfile=certs/development/server.key
+      - --access-logfile=-
+      - --error-logfile=-
+      - --log-level=info
+      - --reload
+      - shelter.wsgi
+    ports:
+      - "8000:8000"
+
+volumes:
+  pg-data:
+  pip-data:
+  bin-data:
