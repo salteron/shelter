@@ -1,6 +1,8 @@
 import uuid
-from abc import ABCMeta, abstractmethod
+from abc import ABCMeta, abstractmethod, abstractproperty
 from typing import NamedTuple
+
+from shelter.deposits import models as deposits
 
 
 class PaymentSystemDeposit(NamedTuple):
@@ -36,14 +38,18 @@ class UnverifiedEventError(Exception):
 
 
 class PaymentSystem(metaclass=ABCMeta):
-    @abstractmethod
-    def create_deposit(self) -> PaymentSystemDeposit:
+    @abstractproperty
+    def id(self):
         pass
 
     @abstractmethod
-    def create_payout(self):
+    def create_deposit(self, deposit: deposits.Deposit) -> PaymentSystemDeposit:
         pass
 
     @abstractmethod
-    def load_event(self, event_data: any) -> PaymentSystemEvent:
+    def create_payout(self, payout: deposits.Payout):
+        pass
+
+    @abstractmethod
+    def load_event(self, event_data: dict) -> PaymentSystemEvent:
         pass

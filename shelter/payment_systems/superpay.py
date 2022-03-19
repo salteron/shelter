@@ -6,6 +6,8 @@ from shelter.payment_systems import models
 
 
 class Superpay(models.PaymentSystem):
+    id = "superpay"
+
     def create_deposit(self, deposit: deposits.Deposit) -> models.PaymentSystemDeposit:
         json = {
             "amount": deposit.value,
@@ -44,7 +46,7 @@ class Superpay(models.PaymentSystem):
         }
         post(f"{settings.SUPERPAY_API_URL}/payout", headers, json)
 
-    def load_event(self, event_data: any) -> models.PaymentSystemEvent:
+    def load_event(self, event_data: dict) -> models.PaymentSystemEvent:
         return models.PayoutSucceededEvent()
 
     @property

@@ -11,7 +11,7 @@ class InsufficientAmountError(Exception):
     pass
 
 
-# TODO: комментарий про неэффективность
+# TODO: комментарий про неэффективность (не защищены от конкурентного создания)
 def get_or_create_wallet_for_deposit(
     deposit: deposits.Deposit, payment_system_account_number: str
 ) -> models.Wallet:

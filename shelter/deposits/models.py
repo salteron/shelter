@@ -1,8 +1,11 @@
 import uuid
+from typing import Type
 
 from django.contrib.auth.models import User
 from django.db import models
 
+from shelter.payment_systems import models as payment_systems
+from shelter.payment_systems.repository import PAYMENT_SYSTEM_BY_ID
 from shelter.wallets import models as wallets
 from shelter.wallets.models import Currencies
 
@@ -44,6 +47,10 @@ class Transaction(models.Model):
     @property
     def amount(self) -> wallets.Amount:
         return wallets.Amount(value=self.value, currency=self.currency)
+
+    @property
+    def payment_system(self) -> Type[payment_systems.PaymentSystem]:
+        return PAYMENT_SYSTEM_BY_ID[self.payment_system_id]
 
 
 class Deposit(Transaction):

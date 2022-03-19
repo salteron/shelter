@@ -52,7 +52,7 @@ class TestCreateDeposit:
     def test_when_success(self, user):
         amount = wallets.Amount(Decimal("100"), wallets.Currencies.USD)
 
-        deposit = services.create_deposit(user, amount)
+        deposit = services.create_deposit(user, Superpay, amount)
 
         deposit.refresh_from_db()
         assert deposit.value == amount.value
