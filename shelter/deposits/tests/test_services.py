@@ -1,10 +1,10 @@
-import uuid
 from decimal import Decimal
-from unittest.mock import Mock, patch
+from unittest.mock import patch
 
 import pytest
 
 from shelter.deposits import factories, models, services
+from shelter.payment_systems.superpay import Superpay
 from shelter.wallets import (
     factories as wallets_factories,
     models as wallets,
@@ -65,6 +65,35 @@ class TestCreateDeposit:
         assert deposit.confirmation_url is None
 
 
+class TestCreatePaymentSystemDeposit:
+    def test_when_deposit_is_created(self):
+        deposit = factories.DepositFactory(created=True)
+
+        services.create_payment_system_deposit(deposit.pk)
+
+        deposit.refresh_from_db()
+        assert deposit.state == models.TransactionStates.PENDING
+        assert deposit.confirmation_url == "http://superpay.com/deposit/42/confirmation"
+
+    def test_when_deposit_is_already_not_created(self):
+        deposit = factories.DepositFactory(canceled=True)
+
+        services.create_payment_system_deposit(deposit.pk)
+
+        deposit.refresh_from_db()
+        assert deposit.state == models.TransactionStates.CANCELED
+
+    @patch.object(Superpay, "create_deposit", lambda *args, **kwargs: 1 / 0)
+    def test_when_request_fails(self):
+        deposit = factories.DepositFactory(created=True)
+
+        with pytest.raises(Exception):
+            services.create_payment_system_deposit(deposit.pk)
+
+        deposit.refresh_from_db()
+        assert deposit.state == models.TransactionStates.CREATED
+
+
 class TestCreatePayout:
     def test_when_success(self, wallet):
         amount = wallets.Amount(Decimal("100"), wallets.Currencies.USD)
@@ -87,6 +116,34 @@ class TestCreatePayout:
 
         with pytest.raises(wallets_services.InsufficientAmountError):
             services.create_payout(wallet, amount)
+
+
+class TestCreatePaymentSystemPayout:
+    def test_when_payout_is_created(self):
+        payout = factories.PayoutFactory(created=True)
+
+        services.create_payment_system_payout(payout.pk)
+
+        payout.refresh_from_db()
+        assert payout.state == models.TransactionStates.PENDING
+
+    def test_when_payout_is_already_not_created(self):
+        payout = factories.PayoutFactory(canceled=True)
+
+        services.create_payment_system_payout(payout.pk)
+
+        payout.refresh_from_db()
+        assert payout.state == models.TransactionStates.CANCELED
+
+    @patch.object(Superpay, "create_payout", lambda *args, **kwargs: 1 / 0)
+    def test_when_request_fails(self):
+        payout = factories.PayoutFactory(created=True)
+
+        with pytest.raises(Exception):
+            services.create_payment_system_payout(payout.pk)
+
+        payout.refresh_from_db()
+        assert payout.state == models.TransactionStates.CREATED
 
 
 class TestHandleSucceededDeposit:

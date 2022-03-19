@@ -14,14 +14,25 @@ class DepositFactory(factory.DjangoModelFactory):
     user = factory.SubFactory(UserFactory)
 
     class Params:
-        pending = factory.Trait(state=models.TransactionStates.PENDING, wallet=None)
+        created = factory.Trait(
+            state=models.TransactionStates.CREATED, wallet=None, confirmation_url=None
+        )
+        pending = factory.Trait(
+            state=models.TransactionStates.PENDING,
+            wallet=None,
+            confirmation_url="http://superpay.com/deposit/42/confirmation",
+        )
+        canceled = factory.Trait(
+            state=models.TransactionStates.CANCELED,
+            wallet=None,
+            confirmation_url="http://superpay.com/deposit/42/confirmation",
+        )
 
     value = Decimal("100")
     currency = models.Currencies.USD
     transaction_id = factory.LazyFunction(uuid.uuid4)
     state = models.TransactionStates.PENDING
     payment_system_id = "superpay"
-    confirmation_url = "http://superpay.com/deposit/42/confirmation"
 
 
 class PayoutFactory(factory.DjangoModelFactory):
@@ -31,7 +42,9 @@ class PayoutFactory(factory.DjangoModelFactory):
     wallet = factory.SubFactory(WalletFactory)
 
     class Params:
+        created = factory.Trait(state=models.TransactionStates.CREATED)
         pending = factory.Trait(state=models.TransactionStates.PENDING)
+        canceled = factory.Trait(state=models.TransactionStates.CANCELED)
 
     value = Decimal("100")
     currency = models.Currencies.USD

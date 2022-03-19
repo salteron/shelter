@@ -1,10 +1,10 @@
 import uuid
-from typing import NamedTuple
 
 from django.contrib.auth import models as users
 from django.db import transaction
 
 from shelter.deposits import models, tasks
+from shelter.payment_systems.superpay import Superpay
 from shelter.wallets import models as wallets, services as wallets_services
 
 """
@@ -34,10 +34,6 @@ from shelter.wallets import models as wallets, services as wallets_services
     - получения PaymentSystem по payment_system_id
     - создания кошелька, указав что надо защититься от конкурентного создания
 """
-
-
-class PaymentSystemDeposit(NamedTuple):
-    confirmation_url: str
 
 
 # TODO: передавать конкретную платежную систему
@@ -70,23 +66,19 @@ def create_deposit(user: users.User, amount: wallets.Amount) -> models.Deposit:
     return deposit
 
 
-def create_payment_system_deposit(deposit: models.Deposit):
-    payment_system_deposit = payment_system_create_deposit(deposit)
+@transaction.atomic
+def create_payment_system_deposit(deposit_id):
+    deposit = models.Deposit.objects.select_for_update().get(pk=deposit_id)
 
-    # TODO: нужен лок, так как может быть конкурентно
-    # TODO: нужно убедиться, что все еще CREATED
+    if deposit.state != models.TransactionStates.CREATED:
+        return
+
+    # TODO: брать payment system из deposit
+    payment_system_deposit = Superpay().create_deposit(deposit)
 
     deposit.state = models.TransactionStates.PENDING
     deposit.confirmation_url = payment_system_deposit.confirmation_url
     deposit.save()
-
-
-# TODO: может, merchant_id все-таки в мету? Какие еще данные нужны?
-# TODO: в payment_systems
-def payment_system_create_deposit(deposit: models.Deposit) -> PaymentSystemDeposit:
-    return PaymentSystemDeposit(
-        confirmation_url="http://superpay.com/deposit/42/confirmation"
-    )
 
 
 def create_payout(wallet: wallets.Wallet, amount: wallets.Amount) -> models.Payout:
@@ -120,19 +112,17 @@ def create_payout(wallet: wallets.Wallet, amount: wallets.Amount) -> models.Payo
     return payout
 
 
-def create_payment_system_payout(payout: models.Payout):
-    payment_system_create_payout(payout)
+@transaction.atomic
+def create_payment_system_payout(payout_id):
+    payout = models.Payout.objects.select_for_update().get(pk=payout_id)
 
-    # TODO: нужен лок, так как может быть конкурентно
-    # TODO: нужно убедиться, что все еще CREATED
+    if payout.state != models.TransactionStates.CREATED:
+        return
+
+    Superpay().create_payout(payout)
 
     payout.state = models.TransactionStates.PENDING
     payout.save()
-
-
-# TODO: в payment_systems
-def payment_system_create_payout(payout: models.Payout):
-    pass
 
 
 # TODO: по идее здесь должен быть event
