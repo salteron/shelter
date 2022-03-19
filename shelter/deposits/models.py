@@ -8,6 +8,7 @@ from shelter.wallets.models import Currencies
 
 
 class TransactionStates(models.TextChoices):
+    CREATED = "created", "created"
     PENDING = "pending", "pending"
     SUCCEEDED = "succeeded", "succeeded"
     CANCELED = "canceled", "canceled"
@@ -62,7 +63,9 @@ class Deposit(Transaction):
         blank=True,
     )
 
-    confirmation_url = models.URLField(verbose_name="Ссылка для подтверждения")
+    confirmation_url = models.URLField(
+        null=True, blank=True, verbose_name="Ссылка для подтверждения"
+    )
 
 
 class Payout(Transaction):

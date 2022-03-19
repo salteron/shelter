@@ -49,10 +49,6 @@ def payout(wallet):
 
 
 class TestCreateDeposit:
-    @patch(
-        "shelter.deposits.services.uuid.uuid4",
-        Mock(return_value="9c7b3114-06da-4fdd-b641-4558a50f9492"),
-    )
     def test_when_success(self, user):
         amount = wallets.Amount(Decimal("100"), wallets.Currencies.USD)
 
@@ -61,15 +57,12 @@ class TestCreateDeposit:
         deposit.refresh_from_db()
         assert deposit.value == amount.value
         assert deposit.currency == amount.currency
-        assert deposit.transaction_id == uuid.UUID(
-            "9c7b3114-06da-4fdd-b641-4558a50f9492"
-        )
-        assert deposit.state == models.TransactionStates.PENDING
+        assert deposit.state == models.TransactionStates.CREATED
         assert deposit.cancelation_reason is None
         assert deposit.wallet is None
         assert deposit.user == user
         assert deposit.payment_system_id == "superpay"
-        assert deposit.confirmation_url == "http://superpay.com/deposit/42/confirmation"
+        assert deposit.confirmation_url is None
 
 
 class TestCreatePayout:
@@ -82,7 +75,7 @@ class TestCreatePayout:
         wallet.refresh_from_db()
         assert payout.value == amount.value
         assert payout.currency == amount.currency
-        assert payout.state == models.TransactionStates.PENDING
+        assert payout.state == models.TransactionStates.CREATED
         assert payout.cancelation_reason is None
         assert payout.wallet == wallet
         assert payout.payment_system_id == "superpay"

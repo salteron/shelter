@@ -4,7 +4,7 @@ from typing import NamedTuple
 from django.contrib.auth import models as users
 from django.db import transaction
 
-from shelter.deposits import models
+from shelter.deposits import models, tasks
 from shelter.wallets import models as wallets, services as wallets_services
 
 """
@@ -42,27 +42,48 @@ class PaymentSystemDeposit(NamedTuple):
 
 # TODO: передавать конкретную платежную систему
 def create_deposit(user: users.User, amount: wallets.Amount) -> models.Deposit:
-    transaction_id = uuid.uuid4()
+    """
 
-    payment_system_deposit = payment_system_create_deposit(user, amount, transaction_id)
+    Если сначала создать депозит, то можно
+    - обеспечить идемпотентность, передавая в апи deposit и используя там, например,
+      deposit.transaction_id в качестве idempotency_key;
+    - отложить http-запрос в фон, обеспечив скорость ответа и повторные попытки
+      при ошибках сети
+    - реализовать метод "попробовать снова" recreate_deposit / recreated_hold, который
+      просто поставит по-новой джоб, отправляющий запрос
 
-    return user.deposits.create(
+    Поэтому мы создаем транзакции в статусе CREATED.
+    Ставим джоб, который, если транзакция все еще CREATED,  отправит запрос и затем выставит
+    статус PENDING
+
+    """
+
+    deposit = user.deposits.create(
         value=amount.value,
         currency=amount.currency,
-        transaction_id=transaction_id,
-        state=models.TransactionStates.PENDING,
+        state=models.TransactionStates.CREATED,
         payment_system_id="superpay",  # TODO: payment_system_id брать из переменной класса
-        confirmation_url=payment_system_deposit.confirmation_url,
     )
+
+    tasks.create_payment_system_deposit_task.delay(deposit.pk)
+
+    return deposit
+
+
+def create_payment_system_deposit(deposit: models.Deposit):
+    payment_system_deposit = payment_system_create_deposit(deposit)
+
+    # TODO: нужен лок, так как может быть конкурентно
+    # TODO: нужно убедиться, что все еще CREATED
+
+    deposit.state = models.TransactionStates.PENDING
+    deposit.confirmation_url = payment_system_deposit.confirmation_url
+    deposit.save()
 
 
 # TODO: может, merchant_id все-таки в мету? Какие еще данные нужны?
 # TODO: в payment_systems
-def payment_system_create_deposit(
-    user: users.User,
-    amount: wallets.Amount,
-    merchant_id: uuid.UUID,
-) -> PaymentSystemDeposit:
+def payment_system_create_deposit(deposit: models.Deposit) -> PaymentSystemDeposit:
     return PaymentSystemDeposit(
         confirmation_url="http://superpay.com/deposit/42/confirmation"
     )
@@ -90,17 +111,23 @@ def create_payout(wallet: wallets.Wallet, amount: wallets.Amount) -> models.Payo
         payout = wallet.payouts.create(
             value=amount.value,
             currency=amount.currency,
-            state=models.TransactionStates.PENDING,
+            state=models.TransactionStates.CREATED,
             payment_system_id=wallet.payment_system_id,
         )
 
-    # TODO: delay с retry при HTTP ошибках; Не забыть проверить, что все еще Payout is pending.
-    # возможно в джобе можно отметить, что джоб будет пытаться выполниться ограниченно число раз
-    # а затем фоновая штука пройдется по старым Payout в статусе PENDING (!) и вернет деньги на базу,
-    # предварительно переведя их в статус canceled.
-    payment_system_create_payout(payout)
+    tasks.create_payment_system_payout_task.delay(payout.pk)
 
     return payout
+
+
+def create_payment_system_payout(payout: models.Payout):
+    payment_system_create_payout(payout)
+
+    # TODO: нужен лок, так как может быть конкурентно
+    # TODO: нужно убедиться, что все еще CREATED
+
+    payout.state = models.TransactionStates.PENDING
+    payout.save()
 
 
 # TODO: в payment_systems
@@ -109,6 +136,7 @@ def payment_system_create_payout(payout: models.Payout):
 
 
 # TODO: по идее здесь должен быть event
+# TODO: переименовать в  handle_succeeded_deposit_event ?
 @transaction.atomic
 def handle_succeeded_deposit(
     transaction_id: uuid.UUID, payment_system_account_number: str
