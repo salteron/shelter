@@ -1,14 +1,13 @@
 from django.conf import settings
 from django.utils import translation
 
-from shelter.deposits import models as deposits
 from shelter.payment_systems import models
 
 
 class Superpay(models.PaymentSystem):
     id = "superpay"
 
-    def create_deposit(self, deposit: deposits.Deposit) -> models.PaymentSystemDeposit:
+    def create_deposit(self, deposit) -> models.PaymentSystemDeposit:
         json = {
             "amount": deposit.value,
             "currency": deposit.currency,
@@ -32,7 +31,7 @@ class Superpay(models.PaymentSystem):
             confirmation_url="http://superpay.com/deposit/42/confirmation"
         )
 
-    def create_payout(self, payout: deposits.Payout):
+    def create_payout(self, payout):
         json = {
             "amount": payout.value,
             "currency": payout.currency,

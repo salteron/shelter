@@ -8,7 +8,7 @@ from shelter.payment_systems.superpay import Superpay
 from shelter.wallets import (
     factories as wallets_factories,
     models as wallets,
-    services as wallets_services,
+    services as wallets_services
 )
 
 pytestmark = pytest.mark.django_db

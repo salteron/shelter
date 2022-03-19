@@ -63,7 +63,7 @@ def create_payment_system_payout(payout_id):
     if payout.state != models.TransactionStates.CREATED:
         return
 
-    payout.payment_system.create_payout(payout)
+    payout.payment_system().create_payout(payout)
 
     payout.state = models.TransactionStates.PENDING
     payout.save()

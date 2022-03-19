@@ -2,8 +2,6 @@ import uuid
 from abc import ABCMeta, abstractmethod, abstractproperty
 from typing import NamedTuple
 
-from shelter.deposits import models as deposits
-
 
 class PaymentSystemDeposit(NamedTuple):
     confirmation_url: str
@@ -43,11 +41,11 @@ class PaymentSystem(metaclass=ABCMeta):
         pass
 
     @abstractmethod
-    def create_deposit(self, deposit: deposits.Deposit) -> PaymentSystemDeposit:
+    def create_deposit(self, deposit) -> PaymentSystemDeposit:
         pass
 
     @abstractmethod
-    def create_payout(self, payout: deposits.Payout):
+    def create_payout(self, payout):
         pass
 
     @abstractmethod
