@@ -109,20 +109,65 @@ def payment_system_create_payout(payout: models.Payout):
 
 
 # TODO: по идее здесь должен быть event
+@transaction.atomic
 def handle_succeeded_deposit(
     transaction_id: uuid.UUID, payment_system_account_number: str
 ):
-    deposit = models.Deposit.objects.get(transaction_id=transaction_id)
+    deposit = models.Deposit.objects.select_for_update().get(
+        transaction_id=transaction_id
+    )
 
     if deposit.state != models.TransactionStates.PENDING:
         return  # может быть некая обработка ситуации вместо игнорирования
 
-    with transaction.atomic():
-        wallet = wallets_services.get_or_create_wallet_for_deposit(
-            deposit, payment_system_account_number
-        )
-        wallets_services.deposit_amount(wallet, deposit.amount)
+    wallet = wallets_services.get_or_create_wallet_for_deposit(
+        deposit, payment_system_account_number
+    )
+    wallets_services.deposit_amount(wallet, deposit.amount)
 
-        deposit.wallet = wallet
-        deposit.state = models.TransactionStates.SUCCEEDED
-        deposit.save()
+    deposit.wallet = wallet
+    deposit.state = models.TransactionStates.SUCCEEDED
+    deposit.save()
+
+
+@transaction.atomic
+def handle_canceled_deposit(transaction_id: uuid.UUID, cancelation_reason: str):
+    deposit = models.Deposit.objects.select_for_update().get(
+        transaction_id=transaction_id
+    )
+
+    if deposit.state != models.TransactionStates.PENDING:
+        return  # может быть некая обработка ситуации вместо игнорирования
+
+    deposit.state = models.TransactionStates.CANCELED
+    deposit.cancelation_reason = cancelation_reason
+    deposit.save()
+
+
+@transaction.atomic
+def handle_succeeded_payout(transaction_id: uuid.UUID):
+    payout = models.Payout.objects.select_for_update().get(
+        transaction_id=transaction_id
+    )
+
+    if payout.state != models.TransactionStates.PENDING:
+        return  # может быть некая обработка ситуации вместо игнорирования
+
+    wallets_services.withdraw_amount(payout.wallet, payout.amount)
+    payout.state = models.TransactionStates.SUCCEEDED
+    payout.save()
+
+
+@transaction.atomic
+def handle_canceled_payout(transaction_id: uuid.UUID, cancelation_reason: str):
+    payout = models.Payout.objects.select_for_update().get(
+        transaction_id=transaction_id
+    )
+
+    if payout.state != models.TransactionStates.PENDING:
+        return  # может быть некая обработка ситуации вместо игнорирования
+
+    wallets_services.release_amount(payout.wallet, payout.amount)
+    payout.state = models.TransactionStates.CANCELED
+    payout.cancelation_reason = cancelation_reason
+    payout.save()

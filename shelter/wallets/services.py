@@ -1,7 +1,6 @@
 import contextlib
 from decimal import Decimal
 
-from django.contrib.auth import models as users
 from django.db import models as django_models, transaction
 
 from shelter.deposits import models as deposits
@@ -46,6 +45,18 @@ def hold_amount(wallet: models.Wallet, amount: models.Amount):
 
         w.deposit -= amount_in_wallet_currency.value
         w.hold += amount_in_wallet_currency.value
+        w.save()
+
+
+def release_amount(wallet: models.Wallet, amount: models.Amount):
+    amount_in_wallet_currency = convert_amount(amount, wallet.currency)
+
+    with locked(wallet) as w:
+        if w.hold < amount_in_wallet_currency.value:
+            raise InsufficientAmountError
+
+        w.deposit += amount_in_wallet_currency.value
+        w.hold -= amount_in_wallet_currency.value
         w.save()
 
 
