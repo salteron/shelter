@@ -47,7 +47,8 @@ def payout(wallet):
 
 
 class TestCreateDeposit:
-    def test_when_success(self, user):
+    @patch("shelter.transactions.tasks.create_payment_system_deposit_task.delay")
+    def test_when_success(self, create_payment_system_deposit_task, user):
         amount = money.Amount(Decimal("100"), money.Currencies.USD)
 
         deposit = services.create_deposit(user, Superpay, amount)
@@ -61,6 +62,8 @@ class TestCreateDeposit:
         assert deposit.user == user
         assert deposit.payment_system_id == "superpay"
         assert deposit.confirmation_url is None
+
+        create_payment_system_deposit_task.assert_called_once_with(deposit.pk)
 
 
 class TestCreatePaymentSystemDeposit:
@@ -93,7 +96,8 @@ class TestCreatePaymentSystemDeposit:
 
 
 class TestCreatePayout:
-    def test_when_success(self, wallet):
+    @patch("shelter.transactions.tasks.create_payment_system_payout_task.delay")
+    def test_when_success(self, create_payment_system_payout_task, wallet):
         amount = money.Amount(Decimal("100"), money.Currencies.USD)
 
         payout = services.create_payout(wallet, amount)
@@ -109,11 +113,16 @@ class TestCreatePayout:
         assert wallet.deposit == Decimal("50")
         assert wallet.hold == Decimal("140")
 
-    def test_when_insufficient_amount(self, wallet):
+        create_payment_system_payout_task.assert_called_once_with(payout.pk)
+
+    @patch("shelter.transactions.tasks.create_payment_system_payout_task.delay")
+    def test_when_insufficient_amount(self, create_payment_system_payout_task, wallet):
         amount = money.Amount(Decimal("200"), money.Currencies.USD)
 
         with pytest.raises(wallets_services.InsufficientAmountError):
             services.create_payout(wallet, amount)
+
+        create_payment_system_payout_task.assert_not_called()
 
 
 class TestCreatePaymentSystemPayout:
