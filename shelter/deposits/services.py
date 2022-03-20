@@ -68,9 +68,8 @@ def create_payment_system_payout(payout_id):
     payout.save()
 
 
-# TODO: переименовать в  handle_deposit_succeeded_event ?
 @transaction.atomic
-def handle_succeeded_deposit(event: payment_systems.DepositSucceededEvent):
+def handle_deposit_succeeded_event(event: payment_systems.DepositSucceededEvent):
     deposit = models.Deposit.objects.select_for_update().get(
         transaction_id=event.transaction_id
     )
@@ -89,7 +88,7 @@ def handle_succeeded_deposit(event: payment_systems.DepositSucceededEvent):
 
 
 @transaction.atomic
-def handle_canceled_deposit(event: payment_systems.DepositCanceledEvent):
+def handle_deposit_canceled_event(event: payment_systems.DepositCanceledEvent):
     deposit = models.Deposit.objects.select_for_update().get(
         transaction_id=event.transaction_id
     )
@@ -103,7 +102,7 @@ def handle_canceled_deposit(event: payment_systems.DepositCanceledEvent):
 
 
 @transaction.atomic
-def handle_succeeded_payout(event: payment_systems.PayoutSucceededEvent):
+def handle_payout_succeeded_event(event: payment_systems.PayoutSucceededEvent):
     payout = models.Payout.objects.select_for_update().get(
         transaction_id=event.transaction_id
     )
@@ -117,7 +116,7 @@ def handle_succeeded_payout(event: payment_systems.PayoutSucceededEvent):
 
 
 @transaction.atomic
-def handle_canceled_payout(event: payment_systems.PayoutCanceledEvent):
+def handle_payout_canceled_event(event: payment_systems.PayoutCanceledEvent):
     payout = models.Payout.objects.select_for_update().get(
         transaction_id=event.transaction_id
     )

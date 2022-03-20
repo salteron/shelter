@@ -147,7 +147,7 @@ class TestCreatePaymentSystemPayout:
         assert payout.is_created()
 
 
-class TestHandleSucceededDeposit:
+class TestHandleDepositSucceededEvent:
     @pytest.fixture
     def event(self, deposit):
         return payment_systems.DepositSucceededEvent(
@@ -155,7 +155,7 @@ class TestHandleSucceededDeposit:
         )
 
     def test_when_wallet_does_not_exist_yet(self, deposit, event):
-        services.handle_succeeded_deposit(event)
+        services.handle_deposit_succeeded_event(event)
 
         deposit.refresh_from_db()
         assert deposit.is_succeeded()
@@ -176,7 +176,7 @@ class TestHandleSucceededDeposit:
             deposit=Decimal("5"),
         )
 
-        services.handle_succeeded_deposit(event)
+        services.handle_deposit_succeeded_event(event)
 
         deposit.refresh_from_db()
         assert deposit.is_succeeded()
@@ -193,14 +193,14 @@ class TestHandleSucceededDeposit:
         deposit.state = models.TransactionStates.CANCELED
         deposit.save()
 
-        services.handle_succeeded_deposit(event)
+        services.handle_deposit_succeeded_event(event)
 
         deposit.refresh_from_db()
         assert deposit.is_canceled()
         assert deposit.wallet is None
 
 
-class TestHandleCanceledDeposit:
+class TestHandleDepositCanceledEvent:
     @pytest.fixture
     def event(self, deposit):
         return payment_systems.DepositCanceledEvent(
@@ -209,7 +209,7 @@ class TestHandleCanceledDeposit:
         )
 
     def test_when_deposit_is_pending(self, deposit, event):
-        services.handle_canceled_deposit(event)
+        services.handle_deposit_canceled_event(event)
 
         deposit.refresh_from_db()
         assert deposit.is_canceled()
@@ -220,14 +220,14 @@ class TestHandleCanceledDeposit:
         deposit.state = models.TransactionStates.SUCCEEDED
         deposit.save()
 
-        services.handle_canceled_deposit(event)
+        services.handle_deposit_canceled_event(event)
 
         deposit.refresh_from_db()
         assert deposit.is_succeeded()
         assert deposit.cancelation_reason is None
 
 
-class TestHandleSucceededPayout:
+class TestHandlePayoutSucceededEvent:
     @pytest.fixture
     def event(self, payout):
         return payment_systems.PayoutSucceededEvent(
@@ -235,7 +235,7 @@ class TestHandleSucceededPayout:
         )
 
     def test_when_payout_is_pending(self, payout, event):
-        services.handle_succeeded_payout(event)
+        services.handle_payout_succeeded_event(event)
 
         payout.refresh_from_db()
         assert payout.is_succeeded()
@@ -247,7 +247,7 @@ class TestHandleSucceededPayout:
         payout.state = models.TransactionStates.CANCELED
         payout.save()
 
-        services.handle_succeeded_payout(event)
+        services.handle_payout_succeeded_event(event)
 
         payout.refresh_from_db()
         assert payout.is_canceled()
@@ -256,7 +256,7 @@ class TestHandleSucceededPayout:
         assert wallet.hold == Decimal("40")
 
 
-class TestHandleCanceledPayout:
+class TestHandlePayoutCanceledEvent:
     @pytest.fixture
     def event(self, payout):
         return payment_systems.PayoutCanceledEvent(
@@ -265,7 +265,7 @@ class TestHandleCanceledPayout:
         )
 
     def test_when_payout_is_pending(self, payout, event):
-        services.handle_canceled_payout(event)
+        services.handle_payout_canceled_event(event)
 
         payout.refresh_from_db()
         assert payout.is_canceled()
@@ -279,7 +279,7 @@ class TestHandleCanceledPayout:
         payout.state = models.TransactionStates.SUCCEEDED
         payout.save()
 
-        services.handle_canceled_payout(event)
+        services.handle_payout_canceled_event(event)
 
         payout.refresh_from_db()
         assert payout.is_succeeded()

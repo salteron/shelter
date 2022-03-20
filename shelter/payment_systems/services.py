@@ -9,10 +9,10 @@ def handle_event(request: HttpRequest, payment_system_id: str):
     event = payment_system.load_event(request)
 
     if event.event_type == "deposit_succeeded_event":
-        deposits_services.handle_succeeded_deposit(event)
+        deposits_services.handle_deposit_succeeded_event(event)
     elif event.event_type == "deposit_canceled_event":
-        deposits_services.handle_canceled_deposit(event)
+        deposits_services.handle_deposit_canceled_event(event)
     elif event.event_type == "payout_succeeded_event":
-        deposits_services.handle_succeeded_payout(event)
+        deposits_services.handle_payout_succeeded_event(event)
     elif event.event_type == "payout_canceled_event":
-        deposits_services.handle_canceled_payout(event)
+        deposits_services.handle_payout_canceled_event(event)
