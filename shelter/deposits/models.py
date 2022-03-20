@@ -53,6 +53,18 @@ class Transaction(models.Model):
     def payment_system(self) -> Type[payment_systems.PaymentSystem]:
         return PAYMENT_SYSTEM_BY_ID[self.payment_system_id]
 
+    def is_created(self):
+        return self.state == TransactionStates.CREATED
+
+    def is_pending(self):
+        return self.state == TransactionStates.PENDING
+
+    def is_succeeded(self):
+        return self.state == TransactionStates.SUCCEEDED
+
+    def is_canceled(self):
+        return self.state == TransactionStates.CANCELED
+
 
 class Deposit(Transaction):
     user = models.ForeignKey(

@@ -1,4 +1,3 @@
-import uuid
 from typing import Type
 
 from django.contrib.auth import models as users
@@ -30,7 +29,7 @@ def create_deposit(
 def create_payment_system_deposit(deposit_id):
     deposit = models.Deposit.objects.select_for_update().get(pk=deposit_id)
 
-    if deposit.state != models.TransactionStates.CREATED:
+    if not deposit.is_created():
         return
 
     payment_system_deposit = deposit.payment_system().create_deposit(deposit)
@@ -60,7 +59,7 @@ def create_payout(wallet: wallets.Wallet, amount: wallets.Amount) -> models.Payo
 def create_payment_system_payout(payout_id):
     payout = models.Payout.objects.select_for_update().get(pk=payout_id)
 
-    if payout.state != models.TransactionStates.CREATED:
+    if not payout.is_created():
         return
 
     payout.payment_system().create_payout(payout)
@@ -76,8 +75,7 @@ def handle_succeeded_deposit(event: payment_systems.DepositSucceededEvent):
         transaction_id=event.transaction_id
     )
 
-    # TODO: добавить вручную методы deposit.is_pending()
-    if deposit.state != models.TransactionStates.PENDING:
+    if not deposit.is_pending():
         return  # может быть некая обработка ситуации вместо игнорирования
 
     wallet = wallets_services.get_or_create_wallet_for_deposit(
@@ -96,7 +94,7 @@ def handle_canceled_deposit(event: payment_systems.DepositCanceledEvent):
         transaction_id=event.transaction_id
     )
 
-    if deposit.state != models.TransactionStates.PENDING:
+    if not deposit.is_pending():
         return  # может быть некая обработка ситуации вместо игнорирования
 
     deposit.state = models.TransactionStates.CANCELED
@@ -110,7 +108,7 @@ def handle_succeeded_payout(event: payment_systems.PayoutSucceededEvent):
         transaction_id=event.transaction_id
     )
 
-    if payout.state != models.TransactionStates.PENDING:
+    if not payout.is_pending():
         return  # может быть некая обработка ситуации вместо игнорирования
 
     wallets_services.withdraw_amount(payout.wallet, payout.amount)
@@ -124,7 +122,7 @@ def handle_canceled_payout(event: payment_systems.PayoutCanceledEvent):
         transaction_id=event.transaction_id
     )
 
-    if payout.state != models.TransactionStates.PENDING:
+    if not payout.is_pending():
         return  # может быть некая обработка ситуации вместо игнорирования
 
     wallets_services.release_amount(payout.wallet, payout.amount)

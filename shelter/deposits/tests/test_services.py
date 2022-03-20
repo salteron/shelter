@@ -58,7 +58,7 @@ class TestCreateDeposit:
         deposit.refresh_from_db()
         assert deposit.value == amount.value
         assert deposit.currency == amount.currency
-        assert deposit.state == models.TransactionStates.CREATED
+        assert deposit.is_created()
         assert deposit.cancelation_reason is None
         assert deposit.wallet is None
         assert deposit.user == user
@@ -73,7 +73,7 @@ class TestCreatePaymentSystemDeposit:
         services.create_payment_system_deposit(deposit.pk)
 
         deposit.refresh_from_db()
-        assert deposit.state == models.TransactionStates.PENDING
+        assert deposit.is_pending()
         assert deposit.confirmation_url == "http://superpay.com/deposit/42/confirmation"
 
     def test_when_deposit_is_already_not_created(self):
@@ -82,7 +82,7 @@ class TestCreatePaymentSystemDeposit:
         services.create_payment_system_deposit(deposit.pk)
 
         deposit.refresh_from_db()
-        assert deposit.state == models.TransactionStates.CANCELED
+        assert deposit.is_canceled()
 
     @patch.object(Superpay, "create_deposit", lambda *args, **kwargs: 1 / 0)
     def test_when_request_fails(self):
@@ -92,7 +92,7 @@ class TestCreatePaymentSystemDeposit:
             services.create_payment_system_deposit(deposit.pk)
 
         deposit.refresh_from_db()
-        assert deposit.state == models.TransactionStates.CREATED
+        assert deposit.is_created()
 
 
 class TestCreatePayout:
@@ -105,7 +105,7 @@ class TestCreatePayout:
         wallet.refresh_from_db()
         assert payout.value == amount.value
         assert payout.currency == amount.currency
-        assert payout.state == models.TransactionStates.CREATED
+        assert payout.is_created()
         assert payout.cancelation_reason is None
         assert payout.wallet == wallet
         assert payout.payment_system_id == "superpay"
@@ -126,7 +126,7 @@ class TestCreatePaymentSystemPayout:
         services.create_payment_system_payout(payout.pk)
 
         payout.refresh_from_db()
-        assert payout.state == models.TransactionStates.PENDING
+        assert payout.is_pending()
 
     def test_when_payout_is_already_not_created(self):
         payout = factories.PayoutFactory(canceled=True)
@@ -134,7 +134,7 @@ class TestCreatePaymentSystemPayout:
         services.create_payment_system_payout(payout.pk)
 
         payout.refresh_from_db()
-        assert payout.state == models.TransactionStates.CANCELED
+        assert payout.is_canceled()
 
     @patch.object(Superpay, "create_payout", lambda *args, **kwargs: 1 / 0)
     def test_when_request_fails(self):
@@ -144,7 +144,7 @@ class TestCreatePaymentSystemPayout:
             services.create_payment_system_payout(payout.pk)
 
         payout.refresh_from_db()
-        assert payout.state == models.TransactionStates.CREATED
+        assert payout.is_created()
 
 
 class TestHandleSucceededDeposit:
@@ -158,7 +158,7 @@ class TestHandleSucceededDeposit:
         services.handle_succeeded_deposit(event)
 
         deposit.refresh_from_db()
-        assert deposit.state == models.TransactionStates.SUCCEEDED
+        assert deposit.is_succeeded()
 
         wallet = deposit.wallet
         assert wallet.user == deposit.user
@@ -179,7 +179,7 @@ class TestHandleSucceededDeposit:
         services.handle_succeeded_deposit(event)
 
         deposit.refresh_from_db()
-        assert deposit.state == models.TransactionStates.SUCCEEDED
+        assert deposit.is_succeeded()
 
         wallet = deposit.wallet
         assert wallet.user == deposit.user
@@ -196,7 +196,7 @@ class TestHandleSucceededDeposit:
         services.handle_succeeded_deposit(event)
 
         deposit.refresh_from_db()
-        assert deposit.state == models.TransactionStates.CANCELED
+        assert deposit.is_canceled()
         assert deposit.wallet is None
 
 
@@ -212,7 +212,7 @@ class TestHandleCanceledDeposit:
         services.handle_canceled_deposit(event)
 
         deposit.refresh_from_db()
-        assert deposit.state == models.TransactionStates.CANCELED
+        assert deposit.is_canceled()
         assert deposit.cancelation_reason == "cancelation-reason"
         assert deposit.wallet is None
 
@@ -223,7 +223,7 @@ class TestHandleCanceledDeposit:
         services.handle_canceled_deposit(event)
 
         deposit.refresh_from_db()
-        assert deposit.state == models.TransactionStates.SUCCEEDED
+        assert deposit.is_succeeded()
         assert deposit.cancelation_reason is None
 
 
@@ -238,7 +238,7 @@ class TestHandleSucceededPayout:
         services.handle_succeeded_payout(event)
 
         payout.refresh_from_db()
-        assert payout.state == models.TransactionStates.SUCCEEDED
+        assert payout.is_succeeded()
 
         wallet = payout.wallet
         assert wallet.hold == Decimal("30")
@@ -250,7 +250,7 @@ class TestHandleSucceededPayout:
         services.handle_succeeded_payout(event)
 
         payout.refresh_from_db()
-        assert payout.state == models.TransactionStates.CANCELED
+        assert payout.is_canceled()
 
         wallet = payout.wallet
         assert wallet.hold == Decimal("40")
@@ -268,7 +268,7 @@ class TestHandleCanceledPayout:
         services.handle_canceled_payout(event)
 
         payout.refresh_from_db()
-        assert payout.state == models.TransactionStates.CANCELED
+        assert payout.is_canceled()
         assert payout.cancelation_reason == "cancelation-reason"
 
         wallet = payout.wallet
@@ -282,7 +282,7 @@ class TestHandleCanceledPayout:
         services.handle_canceled_payout(event)
 
         payout.refresh_from_db()
-        assert payout.state == models.TransactionStates.SUCCEEDED
+        assert payout.is_succeeded()
         assert payout.cancelation_reason is None
 
         wallet = payout.wallet
