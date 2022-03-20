@@ -17,6 +17,7 @@ class TransactionStates(models.TextChoices):
     CANCELED = "canceled", "canceled"
 
 
+# TODO: переименовать app в transactions
 class Transaction(models.Model):
     class Meta:
         abstract = True

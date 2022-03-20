@@ -1,4 +1,5 @@
 from django.conf import settings
+from django.http import HttpRequest
 from django.utils import translation
 
 from shelter.payment_systems import models
@@ -45,7 +46,7 @@ class Superpay(models.PaymentSystem):
         }
         post(f"{settings.SUPERPAY_API_URL}/payout", headers, json)
 
-    def load_event(self, event_data: dict) -> models.PaymentSystemEvent:
+    def load_event(self, request: HttpRequest) -> models.PaymentSystemEvent:
         return models.PayoutSucceededEvent()
 
     @property

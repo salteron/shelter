@@ -4,11 +4,12 @@ from unittest.mock import patch
 import pytest
 
 from shelter.deposits import factories, models, services
+from shelter.payment_systems import models as payment_systems
 from shelter.payment_systems.superpay import Superpay
 from shelter.wallets import (
     factories as wallets_factories,
     models as wallets,
-    services as wallets_services
+    services as wallets_services,
 )
 
 pytestmark = pytest.mark.django_db
@@ -147,8 +148,14 @@ class TestCreatePaymentSystemPayout:
 
 
 class TestHandleSucceededDeposit:
-    def test_when_wallet_does_not_exist_yet(self, deposit):
-        services.handle_succeeded_deposit(deposit.transaction_id, "superpay-007")
+    @pytest.fixture
+    def event(self, deposit):
+        return payment_systems.DepositSucceededEvent(
+            transaction_id=deposit.transaction_id, account_number="superpay-007"
+        )
+
+    def test_when_wallet_does_not_exist_yet(self, deposit, event):
+        services.handle_succeeded_deposit(event)
 
         deposit.refresh_from_db()
         assert deposit.state == models.TransactionStates.SUCCEEDED
@@ -161,7 +168,7 @@ class TestHandleSucceededDeposit:
         assert wallet.hold == Decimal("0")
         assert wallet.currency == models.Currencies.USD
 
-    def test_when_wallet_already_exists(self, deposit):
+    def test_when_wallet_already_exists(self, deposit, event):
         wallet = wallets_factories.WalletFactory(
             user=deposit.user,
             payment_system_id=deposit.payment_system_id,
@@ -169,7 +176,7 @@ class TestHandleSucceededDeposit:
             deposit=Decimal("5"),
         )
 
-        services.handle_succeeded_deposit(deposit.transaction_id, "superpay-007")
+        services.handle_succeeded_deposit(event)
 
         deposit.refresh_from_db()
         assert deposit.state == models.TransactionStates.SUCCEEDED
@@ -182,11 +189,11 @@ class TestHandleSucceededDeposit:
         assert wallet.hold == Decimal("0")
         assert wallet.currency == models.Currencies.USD
 
-    def test_when_deposit_is_already_not_pending(self, deposit):
+    def test_when_deposit_is_already_not_pending(self, deposit, event):
         deposit.state = models.TransactionStates.CANCELED
         deposit.save()
 
-        services.handle_succeeded_deposit(deposit.transaction_id, "superpay-007")
+        services.handle_succeeded_deposit(event)
 
         deposit.refresh_from_db()
         assert deposit.state == models.TransactionStates.CANCELED
@@ -194,19 +201,26 @@ class TestHandleSucceededDeposit:
 
 
 class TestHandleCanceledDeposit:
-    def test_when_deposit_is_pending(self, deposit):
-        services.handle_canceled_deposit(deposit.transaction_id, "cancelation-reason")
+    @pytest.fixture
+    def event(self, deposit):
+        return payment_systems.DepositCanceledEvent(
+            transaction_id=deposit.transaction_id,
+            cancelation_reason="cancelation-reason",
+        )
+
+    def test_when_deposit_is_pending(self, deposit, event):
+        services.handle_canceled_deposit(event)
 
         deposit.refresh_from_db()
         assert deposit.state == models.TransactionStates.CANCELED
         assert deposit.cancelation_reason == "cancelation-reason"
         assert deposit.wallet is None
 
-    def test_when_deposit_is_already_not_pending(self, deposit):
+    def test_when_deposit_is_already_not_pending(self, deposit, event):
         deposit.state = models.TransactionStates.SUCCEEDED
         deposit.save()
 
-        services.handle_canceled_deposit(deposit.transaction_id, "cancelation-reason")
+        services.handle_canceled_deposit(event)
 
         deposit.refresh_from_db()
         assert deposit.state == models.TransactionStates.SUCCEEDED
@@ -214,8 +228,14 @@ class TestHandleCanceledDeposit:
 
 
 class TestHandleSucceededPayout:
-    def test_when_payout_is_pending(self, payout):
-        services.handle_succeeded_payout(payout.transaction_id)
+    @pytest.fixture
+    def event(self, payout):
+        return payment_systems.PayoutSucceededEvent(
+            transaction_id=payout.transaction_id
+        )
+
+    def test_when_payout_is_pending(self, payout, event):
+        services.handle_succeeded_payout(event)
 
         payout.refresh_from_db()
         assert payout.state == models.TransactionStates.SUCCEEDED
@@ -223,11 +243,11 @@ class TestHandleSucceededPayout:
         wallet = payout.wallet
         assert wallet.hold == Decimal("30")
 
-    def test_when_payout_is_already_not_pending(self, payout):
+    def test_when_payout_is_already_not_pending(self, payout, event):
         payout.state = models.TransactionStates.CANCELED
         payout.save()
 
-        services.handle_succeeded_payout(payout.transaction_id)
+        services.handle_succeeded_payout(event)
 
         payout.refresh_from_db()
         assert payout.state == models.TransactionStates.CANCELED
@@ -237,8 +257,15 @@ class TestHandleSucceededPayout:
 
 
 class TestHandleCanceledPayout:
-    def test_when_payout_is_pending(self, payout):
-        services.handle_canceled_payout(payout.transaction_id, "cancelation-reason")
+    @pytest.fixture
+    def event(self, payout):
+        return payment_systems.PayoutCanceledEvent(
+            transaction_id=payout.transaction_id,
+            cancelation_reason="cancelation-reason",
+        )
+
+    def test_when_payout_is_pending(self, payout, event):
+        services.handle_canceled_payout(event)
 
         payout.refresh_from_db()
         assert payout.state == models.TransactionStates.CANCELED
@@ -248,11 +275,11 @@ class TestHandleCanceledPayout:
         assert wallet.deposit == Decimal("160")
         assert wallet.hold == Decimal("30")
 
-    def test_when_payout_is_already_not_pending(self, payout):
+    def test_when_payout_is_already_not_pending(self, payout, event):
         payout.state = models.TransactionStates.SUCCEEDED
         payout.save()
 
-        services.handle_canceled_payout(payout.transaction_id, "cancelation-reason")
+        services.handle_canceled_payout(event)
 
         payout.refresh_from_db()
         assert payout.state == models.TransactionStates.SUCCEEDED
