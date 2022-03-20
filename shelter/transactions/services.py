@@ -3,6 +3,7 @@ from typing import Type
 from django.contrib.auth import models as users
 from django.db import transaction
 
+from shelter import money
 from shelter.payment_systems import models as payment_systems
 from shelter.transactions import models, tasks
 from shelter.wallets import models as wallets, services as wallets_services
@@ -11,7 +12,7 @@ from shelter.wallets import models as wallets, services as wallets_services
 def create_deposit(
     user: users.User,
     payment_system: Type[payment_systems.PaymentSystem],
-    amount: wallets.Amount,
+    amount: money.Amount,
 ) -> models.Deposit:
     deposit = user.deposits.create(
         value=amount.value,
@@ -39,7 +40,7 @@ def create_payment_system_deposit(deposit_id):
     deposit.save()
 
 
-def create_payout(wallet: wallets.Wallet, amount: wallets.Amount) -> models.Payout:
+def create_payout(wallet: wallets.Wallet, amount: money.Amount) -> models.Payout:
     with transaction.atomic():
         wallets_services.hold_amount(wallet, amount)
 

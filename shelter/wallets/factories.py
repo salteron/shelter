@@ -3,6 +3,7 @@ from decimal import Decimal
 import factory
 from django.contrib.auth import models as users
 
+from shelter import money
 from shelter.wallets import models
 
 
@@ -20,4 +21,4 @@ class WalletFactory(factory.DjangoModelFactory):
     payment_system_account_number = "superpay-007"
     deposit = Decimal("0")
     hold = Decimal("0")
-    currency = models.Currencies.USD
+    currency = money.Currencies.USD

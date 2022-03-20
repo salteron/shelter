@@ -3,14 +3,11 @@ from unittest.mock import patch
 
 import pytest
 
+from shelter import money
 from shelter.payment_systems import models as payment_systems
 from shelter.payment_systems.superpay import Superpay
 from shelter.transactions import factories, models, services
-from shelter.wallets import (
-    factories as wallets_factories,
-    models as wallets,
-    services as wallets_services,
-)
+from shelter.wallets import factories as wallets_factories, services as wallets_services
 
 pytestmark = pytest.mark.django_db
 
@@ -33,7 +30,7 @@ def deposit(user):
         pending=True,
         user=user,
         value=Decimal("10"),
-        currency=models.Currencies.USD,
+        currency=money.Currencies.USD,
         payment_system_id="superpay",
     )
 
@@ -44,14 +41,14 @@ def payout(wallet):
         pending=True,
         wallet=wallet,
         value=Decimal("10"),
-        currency=models.Currencies.USD,
+        currency=money.Currencies.USD,
         payment_system_id="superpay",
     )
 
 
 class TestCreateDeposit:
     def test_when_success(self, user):
-        amount = wallets.Amount(Decimal("100"), wallets.Currencies.USD)
+        amount = money.Amount(Decimal("100"), money.Currencies.USD)
 
         deposit = services.create_deposit(user, Superpay, amount)
 
@@ -97,7 +94,7 @@ class TestCreatePaymentSystemDeposit:
 
 class TestCreatePayout:
     def test_when_success(self, wallet):
-        amount = wallets.Amount(Decimal("100"), wallets.Currencies.USD)
+        amount = money.Amount(Decimal("100"), money.Currencies.USD)
 
         payout = services.create_payout(wallet, amount)
 
@@ -113,7 +110,7 @@ class TestCreatePayout:
         assert wallet.hold == Decimal("140")
 
     def test_when_insufficient_amount(self, wallet):
-        amount = wallets.Amount(Decimal("200"), wallets.Currencies.USD)
+        amount = money.Amount(Decimal("200"), money.Currencies.USD)
 
         with pytest.raises(wallets_services.InsufficientAmountError):
             services.create_payout(wallet, amount)
@@ -166,7 +163,7 @@ class TestHandleDepositSucceededEvent:
         assert wallet.payment_system_account_number == "superpay-007"
         assert wallet.deposit == Decimal("10")
         assert wallet.hold == Decimal("0")
-        assert wallet.currency == models.Currencies.USD
+        assert wallet.currency == money.Currencies.USD
 
     def test_when_wallet_already_exists(self, deposit, event):
         wallet = wallets_factories.WalletFactory(
@@ -187,7 +184,7 @@ class TestHandleDepositSucceededEvent:
         assert wallet.payment_system_account_number == "superpay-007"
         assert wallet.deposit == Decimal("15")
         assert wallet.hold == Decimal("0")
-        assert wallet.currency == models.Currencies.USD
+        assert wallet.currency == money.Currencies.USD
 
     def test_when_deposit_is_already_not_pending(self, deposit, event):
         deposit.state = models.TransactionStates.CANCELED

@@ -2,7 +2,8 @@ from decimal import Decimal
 
 import pytest
 
-from shelter.wallets import models, services
+from shelter import money
+from shelter.wallets import services
 from shelter.wallets.factories import WalletFactory
 
 pytestmark = pytest.mark.django_db
@@ -14,7 +15,7 @@ def wallet():
 
 
 def test_deposit_amount(wallet):
-    amount = models.Amount(Decimal("7.42"), models.Currencies.USD)
+    amount = money.Amount(Decimal("7.42"), money.Currencies.USD)
 
     services.deposit_amount(wallet, amount)
 
@@ -23,7 +24,7 @@ def test_deposit_amount(wallet):
 
 
 def test_hold_amount(wallet):
-    amount = models.Amount(Decimal("0.58"), models.Currencies.USD)
+    amount = money.Amount(Decimal("0.58"), money.Currencies.USD)
 
     services.hold_amount(wallet, amount)
 
@@ -33,14 +34,14 @@ def test_hold_amount(wallet):
 
 
 def test_hold_amount_when_insufficient(wallet):
-    amount = models.Amount(Decimal("2.59"), models.Currencies.USD)
+    amount = money.Amount(Decimal("2.59"), money.Currencies.USD)
 
     with pytest.raises(services.InsufficientAmountError):
         services.hold_amount(wallet, amount)
 
 
 def test_withdraw_amount(wallet):
-    amount = models.Amount(Decimal("0.5"), models.Currencies.USD)
+    amount = money.Amount(Decimal("0.5"), money.Currencies.USD)
 
     services.withdraw_amount(wallet, amount)
 
@@ -49,7 +50,7 @@ def test_withdraw_amount(wallet):
 
 
 def test_withdraw_amount_when_insufficient(wallet):
-    amount = models.Amount(Decimal("1.5"), models.Currencies.USD)
+    amount = money.Amount(Decimal("1.5"), money.Currencies.USD)
 
     with pytest.raises(services.InsufficientAmountError):
         services.withdraw_amount(wallet, amount)

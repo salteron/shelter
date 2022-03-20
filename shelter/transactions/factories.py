@@ -3,6 +3,7 @@ from decimal import Decimal
 
 import factory
 
+from shelter import money
 from shelter.transactions import models
 from shelter.wallets.factories import UserFactory, WalletFactory
 
@@ -29,7 +30,7 @@ class DepositFactory(factory.DjangoModelFactory):
         )
 
     value = Decimal("100")
-    currency = models.Currencies.USD
+    currency = money.Currencies.USD
     transaction_id = factory.LazyFunction(uuid.uuid4)
     state = models.TransactionStates.PENDING
     payment_system_id = "superpay"
@@ -47,7 +48,7 @@ class PayoutFactory(factory.DjangoModelFactory):
         canceled = factory.Trait(state=models.TransactionStates.CANCELED)
 
     value = Decimal("100")
-    currency = models.Currencies.USD
+    currency = money.Currencies.USD
     transaction_id = factory.LazyFunction(uuid.uuid4)
     state = models.TransactionStates.PENDING
     payment_system_id = "superpay"

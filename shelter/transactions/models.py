@@ -4,10 +4,9 @@ from typing import Type
 from django.contrib.auth.models import User
 from django.db import models
 
+from shelter import money
 from shelter.payment_systems import models as payment_systems
 from shelter.payment_systems.repository import PAYMENT_SYSTEM_BY_ID
-from shelter.wallets import models as wallets
-from shelter.wallets.models import Currencies
 
 
 class TransactionStates(models.TextChoices):
@@ -17,7 +16,6 @@ class TransactionStates(models.TextChoices):
     CANCELED = "canceled", "canceled"
 
 
-# TODO: переименовать app в transactions
 class Transaction(models.Model):
     class Meta:
         abstract = True
@@ -26,11 +24,11 @@ class Transaction(models.Model):
         max_digits=19, decimal_places=4, verbose_name="Значение"
     )
     currency = models.CharField(
-        choices=Currencies.choices, max_length=3, verbose_name="Валюта"
+        choices=money.Currencies.choices, max_length=3, verbose_name="Валюта"
     )
     transaction_id = models.UUIDField(
         default=uuid.uuid4,
-        db_index=True,
+        unique=True,
         verbose_name="Идентификатор транзакции",
     )
     state = models.CharField(
@@ -46,8 +44,8 @@ class Transaction(models.Model):
     )
 
     @property
-    def amount(self) -> wallets.Amount:
-        return wallets.Amount(value=self.value, currency=self.currency)
+    def amount(self) -> money.Amount:
+        return money.Amount(value=self.value, currency=self.currency)
 
     @property
     def payment_system(self) -> Type[payment_systems.PaymentSystem]:
