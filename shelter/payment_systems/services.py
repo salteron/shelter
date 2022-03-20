@@ -6,7 +6,7 @@ from shelter.transactions import services as deposits_services
 
 def handle_event(request: HttpRequest, payment_system_id: str):
     payment_system = PAYMENT_SYSTEM_BY_ID[payment_system_id]
-    event = payment_system.load_event(request)
+    event = payment_system().load_event(request)
 
     if event.event_type == "deposit_succeeded_event":
         deposits_services.handle_deposit_succeeded_event(event)
