@@ -3,7 +3,7 @@ from decimal import Decimal
 
 from django.db import models as django_models, transaction
 
-from shelter.deposits import models as deposits
+from shelter.transactions import models as deposits
 from shelter.wallets import models
 
 

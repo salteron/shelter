@@ -3,8 +3,8 @@ from typing import Type
 from django.contrib.auth import models as users
 from django.db import transaction
 
-from shelter.deposits import models, tasks
 from shelter.payment_systems import models as payment_systems
+from shelter.transactions import models, tasks
 from shelter.wallets import models as wallets, services as wallets_services
 
 

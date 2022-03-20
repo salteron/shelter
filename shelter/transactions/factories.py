@@ -3,7 +3,7 @@ from decimal import Decimal
 
 import factory
 
-from shelter.deposits import models
+from shelter.transactions import models
 from shelter.wallets.factories import UserFactory, WalletFactory
 
 

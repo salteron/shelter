@@ -1,4 +1,4 @@
-from shelter.deposits import services
+from shelter.transactions import services
 
 HTTP_RETRY_EXCEPTIONS = (TimeoutError,)  # etc
 

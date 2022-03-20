@@ -3,9 +3,9 @@ from unittest.mock import patch
 
 import pytest
 
-from shelter.deposits import factories, models, services
 from shelter.payment_systems import models as payment_systems
 from shelter.payment_systems.superpay import Superpay
+from shelter.transactions import factories, models, services
 from shelter.wallets import (
     factories as wallets_factories,
     models as wallets,

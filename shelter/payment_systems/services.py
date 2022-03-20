@@ -1,7 +1,7 @@
 from django.http import HttpRequest
 
-from shelter.deposits import services as deposits_services
 from shelter.payment_systems.repository import PAYMENT_SYSTEM_BY_ID
+from shelter.transactions import services as deposits_services
 
 
 def handle_event(request: HttpRequest, payment_system_id: str):
