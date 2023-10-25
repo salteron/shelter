@@ -49,3 +49,6 @@ compose-psql:
 	${DOCKER_COMPOSE_RUN} db psql -h db -U postgres ${DB}
 
 compose-prepare: compose-build compose-install compose-migrate
+
+compose-test:
+	${DOCKER_COMPOSE_RUN} app make test
