@@ -1,4 +1,4 @@
-FROM registry.kontur.host/library/python/python:3.9-slim-buster AS development_build
+FROM python:3.9-slim AS development_build
 
 ENV \
   # python:

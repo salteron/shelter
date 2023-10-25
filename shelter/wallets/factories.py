@@ -11,6 +11,8 @@ class UserFactory(factory.DjangoModelFactory):
     class Meta:
         model = users.User
 
+    username = factory.Sequence(lambda n: "user-%d" % n)
+
 
 class WalletFactory(factory.DjangoModelFactory):
     class Meta:

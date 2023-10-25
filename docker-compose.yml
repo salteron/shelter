@@ -2,15 +2,14 @@ version: '3.6'
 
 services:
   db:
-    image: 'registry.kontur.host/library/postgres/postgres:13.3'
+    image: 'postgres:13.3'
     environment:
       - POSTGRES_DB=development
       - POSTGRES_HOST_AUTH_METHOD=trust
     volumes:
       - pg-data:/var/lib/postgresql/data
 
-  app:
-    &app
+  app: &app
     image: shelter-api-dev
     build:
       context: .
