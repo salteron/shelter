@@ -76,7 +76,7 @@ def handle_deposit_succeeded_event(event: payment_systems.DepositSucceededEvent)
     )
 
     if not deposit.is_pending():
-        return  # может быть некая обработка ситуации вместо игнорирования
+        return  # Might be some handling instead of ignoring.
 
     wallet = wallets_services.get_or_create_wallet_for_deposit(
         deposit, event.account_number
@@ -95,7 +95,7 @@ def handle_deposit_canceled_event(event: payment_systems.DepositCanceledEvent):
     )
 
     if not deposit.is_pending():
-        return  # может быть некая обработка ситуации вместо игнорирования
+        return  # Might be some handling instead of ignoring.
 
     deposit.state = models.TransactionStates.CANCELED
     deposit.cancelation_reason = event.cancelation_reason
@@ -109,7 +109,7 @@ def handle_payout_succeeded_event(event: payment_systems.PayoutSucceededEvent):
     )
 
     if not payout.is_pending():
-        return  # может быть некая обработка ситуации вместо игнорирования
+        return  # Might be some handling instead of ignoring.
 
     wallets_services.withdraw_amount(payout.wallet, payout.amount)
     payout.state = models.TransactionStates.SUCCEEDED
@@ -123,7 +123,7 @@ def handle_payout_canceled_event(event: payment_systems.PayoutCanceledEvent):
     )
 
     if not payout.is_pending():
-        return  # может быть некая обработка ситуации вместо игнорирования
+        return  # Might be some handling instead of ignoring.
 
     wallets_services.release_amount(payout.wallet, payout.amount)
     payout.state = models.TransactionStates.CANCELED

@@ -4,7 +4,7 @@ HTTP_RETRY_EXCEPTIONS = (TimeoutError,)  # etc
 
 """
 
-    Конечная реализация может использовать Celery в качестве очередей задач.
+    The final implementation may utilize Celery as the task queue.
 
 """
 
@@ -21,13 +21,13 @@ create_payment_system_deposit_task.max_retries = 5
 def create_payment_system_payout_task(payout_id):
     """
 
-    Для простоты предполагаем, что в случае ошибок задача переставляется бесчисленное
-    количество раз до тех пор, пока не выполнится.
+    For simplicity, we assume that in case of errors, the task is retried
+    indefinitely until it succeeds.
 
-    В конечной реализации число повторных попыток должно быть ограничено, а Celery Beat
-    регулярно запускает задачу, которая отыскивает payouts в статусе CREATED,
-    созданные более t назад, переводит их в статус CANCELED и релизит соответствующие
-    ("висящие") холды.
+    In the final implementation, the number of retry attempts should be limited,
+    and Celery Beat regularly triggers a task that identifies payouts in the
+    CREATED status, created more than t time ago, cancels them, and releases the
+    corresponding ("hanging") holds.
 
     """
     services.create_payment_system_payout(payout_id)

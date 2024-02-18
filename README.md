@@ -1,39 +1,39 @@
 # SHELTER
 
-Проект является решением тестового задания, сформулированного в [TASK.md](./TASK.md).
+The project is a solution to the test task formulated in [TASK.md](./TASK.md).
 
-Задание понял следующим образом 
-- пользователь может вывести деньги с кошелька только на ту платежную систему и
-  на тот счет, с которых этот кошелек был пополнен
-- платежная система не берет комиссию
+I understand the task as follows:
+- The user can withdraw money from the wallet only to the payment system and
+  to the account from which this wallet was replenished
+- The payment system does not charge a commission
 
-В результате переговоров с командой Superpay:
-- Superpay предоставляет как боевую, так и тестовую площадки;
-- АПИ Superpay переезжает с http на https для повышения безопасности;
-- аутентификация в АПИ Superpay реализуется по схеме Basic Authentication, где в
-  качестве username / password используются client-id / client-secret;
-- АПИ Superpay позволяет сопровождать запросы ключом идемпотентности, указывая
-  его в заголовке X-Idempotency-Key. Это защитит нас от дублирующихся
-  транзакций;
-- транзакции (депозит, выплата) на стороне Superpay создаются в статусе pending,
-  затем приобретают один из двух конечных статусов - succeeded или canceled;
-- метод создания депозита возвращает ссылку для подтверждения, ведущую на
-  страницу оплаты на сайте Superpay;
-- если в течение времени t пользователь не перешел по ссылке и не произвел
-  оплату, то Superpay переводит такие депозиты в статус canceled;
-- Superpay уведомляет нас о смене статуса каждой транзакции отдельным POST
-  запросом на колбек /payment-systems/superpay/callback;
-- ответ 200 с нашей стороны означает, что событие успешно обработано. В случае
-  другого статуса ответа Superpay продолжит периодически уведомлять о данном
-  событии в течение N дней;
-- отправляя запросы на колбек, Superpay прикладывает подпись их содержимого для
-  того, чтобы мы могли убедиться, что запрос поступил именно от них (подробнее в
-  superpay.py).
+As a result of negotiations with the Superpay team:
+- Superpay provides both production and test environments
+- Superpay's API moves from http to https for increased security
+- Authentication in Superpay's API is implemented using the Basic Authentication scheme, where
+  client-id / client-secret are used as username / password
+- Superpay's API allows accompanying requests with an idempotency key by specifying
+  it in the X-Idempotency-Key header. This will protect us from duplicate
+  transactions
+- Transactions (deposit, payout) on the Superpay side are created in a pending status,
+  then they acquire one of two final statuses - succeeded or canceled
+- The method of creating a deposit returns a confirmation link leading to
+  the payment page on the Superpay website
+- If the user does not follow the link and make
+  payment within time t, Superpay converts such deposits to canceled status
+- Superpay notifies us of the change in status of each transaction with a separate POST
+  request to the /payment-systems/superpay/callback callback
+- A 200 response from our side means that the event has been successfully processed. In case of
+  a different response status, Superpay will continue to periodically notify about this
+  event for N days
+- When sending callback requests, Superpay attaches a signature of their contents for
+  us to be able to ensure that the request came from them (more details in
+  superpay.py)
 
-На данный момент точкой входа в сценарий создания депозита является 
+At the moment, the entry point into the deposit creation scenario is 
 `shelter/transactions/services.py::create_deposit`
 
-На данный момент точкой входа в сценарий создания выплаты является 
+At the moment, the entry point into the payout creation scenario is 
 `shelter/transactions/services.py::create_payout`
 
 ## Requirements

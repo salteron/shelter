@@ -28,7 +28,8 @@ class Superpay(models.PaymentSystem):
 
         """
 
-            В конечной реализации confirmation_url берется из ответа от АПИ.
+            In the final implementation, the confirmation_url is retrieved from
+            the API response.
 
         """
         return models.PaymentSystemDeposit(
@@ -57,8 +58,8 @@ class Superpay(models.PaymentSystem):
 
         """
 
-            В конечной реализации формирует событие нужного типа в зависимости от
-            тела запроса.
+            In the final implementation, it generates an event of the required
+            type depending on the request body.
 
         """
 
@@ -74,23 +75,21 @@ class Superpay(models.PaymentSystem):
     def _verify_event_data(self, request: HttpRequest) -> bool:
         """
 
-        Метод убеждается в подлинности события, в том, что оно пришло от Superpay.
+        The method ensures the authenticity of the event, verifying that it
+        originated from Superpay.
 
-        Перед тем как сформировать event Superpay:
-        - формирует сообщение, являющееся производной от содержимого тела ответа
-        и служебных данных
-        - вычисляет хэш-сумму от сообщения (SHA-256)
-        - шифрует хэш-сумму своим приватным ключом (RSA)
-        - указывает полученное значение в заголовке X-Superpay-Signature
+        Before forming the event Superpay:
+        - Constructs a message derived from the content of the response body and auxiliary data.
+        - Computes the hash value of the message (SHA-256).
+        - Encrypts the hash value with its private key (RSA).
+        - Specifies the obtained value in the X-Superpay-Signature header.
 
-        Данный метод:
-        - дешифрует значение X-Superpay-Signature при помощи публичного ключа Superpay
-          (RSA)
-        - формирует сообщение, являющееся производной от содержимого тела ответа и
-          служебных данных
-        - вычисляет хэш-сумму от сообщения (SHA-256)
-        - сравнивает хэш-сумму с дешифрованным значением
-        - успешное сравнение символизирует подллиность события
+        This method:
+        - Decrypts the value of X-Superpay-Signature using the Superpay public key (RSA).
+        - Constructs a message derived from the content of the response body and auxiliary data.
+        - Computes the hash value of the message (SHA-256).
+        - Compares the hash value with the decrypted value.
+        - A successful comparison indicates the authenticity of the event.
 
         """
         return True

@@ -17,8 +17,8 @@ def get_or_create_wallet_for_deposit(
 ) -> models.Wallet:
     """
 
-    Наивная реализация. В конечной реализации должна быть решена проблема конкурентного
-    создания.
+    Naive implementation. In the final implementation, the problem of concurrent
+    creation should be addressed.
 
     """
     wallet, _ = deposit.user.wallets.get_or_create(

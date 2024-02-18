@@ -1,8 +1,8 @@
-Задача - провести интеграцию с платежной системой SuperPay.
+Task - integrate with the SuperPay payment system.
 
-Прямо сейчас они обеспечивают такой API.
+They currently provide the following API.
 
-Депозит:
+Deposit:
 ```
 POST http://superpay.com/api/deposit
 {
@@ -10,7 +10,7 @@ POST http://superpay.com/api/deposit
 
             'amount': 12.33,
 
-            'currency': ‘RUB',
+            'currency': ‘RUB’,
 
             'redirect_success_url': ‘https://example.com/superpay?result=success',
 
@@ -21,10 +21,9 @@ POST http://superpay.com/api/deposit
             ‘merchant_id': 1234567,
         }
 ```
-merchant_id это id транзакции на нашей стороне (на стороне сайта example.com)
+merchant_id is the transaction ID on our side (on the example.com website)
 
-
-Вывод:
+Withdrawal:
 ```
 POST http://superpay.com/api/payout
 
@@ -43,44 +42,21 @@ POST http://superpay.com/api/payout
         }
 ```
 
-Юзер при выводе средств указывает на нашем сайте wallet, к которому привязан
-wallet_id в SuperPay, и amount. А на ответы API у них вообще нет документации. И
-нет документации на формат коллбэков. Говорят что запилят под нашу интеграцию
-любые формы ответов и коллбэков, которые нам (example.com) будут удобны. Можно
-считать, что необходимые данные по транзакции у них есть (время совершения,
-успех/неуспех и т.д.). Кошельки внутри SuperPay считать унивалютными.
+When a user withdraws funds, he specifies the amount and the wallet associated
+with wallet_id at SuperPay. Superpay does not have documentation for API
+responses and callback formats. They claim that they will implement any forms of
+responses and callbacks that will be convenient for our (example.com)
+integration . It can be assumed that they have the necessary transaction data
+(time of transaction, success/failure, etc.). Wallets within SuperPay are
+considered multi-currency.
 
-1. Составить ТЗ для команды SuperPay для модификации/улучшения API под наш
-продукт example.com. Уточнить у них все вопросы, которые из их API непонятны
-(уточнить значит составить список вопросов, так как SuperPay - вымышленная
-система).
-2. Составить структуру реляционной базы для хранения всех необходимых
-данных в рамках интеграции с SuperPay. Считаем, что уже есть модель User.
-Считаем, что уже есть все для ведения учета движения средств по кошелькам
-пользователей (то есть у пользователя есть Wallet и ниже уровня вызовов
-wallet.deposit_amount, wallet.hold_amount, wallet.withdraw_amount не опускаемся,
-но саму модель Wallet требуется описать). Считать, что есть django orm.
-3. Считать, что необходимая инфраструктура есть (описать, что нужно). Например в
-системе есть cron, который готов по расписанию нужную логику запускать. Или
-считать, что есть очередь/воркер, и в воркер можно командой set_task поставить
-задачу, а в воркере командой get_task задачу получить и выполнить (задача -
-python функция).
-4. Написать код для вывода средств (код http api хэндлеров,
-обрабатывающих запрос на вывод и коллбэк от SuperPay) + дополнительный код, если
-нужно что-то запускать кроме кода нашего http api. При реализации не углубляемся
-в то, что второстепенно - то есть если есть желание показать, что в каком-то
-месте требутеся вызвать какую-то вспомогательную логику, то просто можно
-написать do_something_cool_here(a=1, b=2) и не реализовывать саму эту логику.
-5. Написать тесты (pytest) для какой-то важной части написанного кода. Нам не нужны
-все тесты (это занимает значительное время), но нужно что-то важное покрыть,
-чтобы мы могли увидеть реализацию тестов.
-6. В результате выполнения задачи не
-будет реально исполняемый код, будет просто набор файлов/модулей, в которых есть
-разные части кода (http api, внутренняя логика работы с кошельками, логика
-каких-то воркеров). Но написанный код должен дать представление о правильности
-подхода, чистоте, качестве тестов.
-7. Описать флоу, архитектуру просто текстом.
-Не требуется тратить время на графику.
+1. Prepare a technical specification for the SuperPay team to modify/improve the API for our product, example.com. Clarify any ambiguities in their API (clarification involves compiling a list of questions, as SuperPay is a fictional system).
+2. Develop the relational database structure to store all necessary data within the SuperPay integration. Assume that the User model already exists. Assume everything is in place for tracking fund movements within user wallets (i.e., user has Wallet, and we don't delve into wallet.deposit_amount, wallet.hold_amount, wallet.withdraw_amount calls, but a description of the Wallet model is required). Assume Django ORM is available.
+3. Assume the necessary infrastructure is available (describe what is needed). For example, a cron job in the system is ready to execute the required logic on schedule. Or assume there is a queue/worker, and a task can be set in the worker using the set_task command, and the task can be obtained and executed in the worker using the get_task command (task - Python function).
+4. Write code for fund withdrawal (HTTP API handler code, processing withdrawal requests and callbacks from SuperPay) + additional code if something needs to be executed besides our HTTP API code. When implementing, we don't delve into secondary matters - if there is a desire to show that some auxiliary logic needs to be called in some place, it's sufficient to simply write do_something_cool_here(a=1, b=2) without implementing the logic itself.
+5. Write tests (pytest) for some important part of the written code. We don't need all tests (it takes significant time), but we need to cover something important so that we can see the implementation of tests.
+6. As a result of completing the task, there will be no actual executable code, just a set of files/modules containing various parts of code (HTTP API, internal wallet logic, logic of some workers). However, the written code should provide an understanding of the correctness of the approach, cleanliness, and quality of the tests.
+7. Describe the flow, architecture simply in text. No need to spend time on graphics.
 
-Если какая-то деталь не описана в задаче выше - можешь выбирать более
-правильный/удобный вариант.
+If a detail is not described in the task above - you can choose a more
+correct/convenient option.
